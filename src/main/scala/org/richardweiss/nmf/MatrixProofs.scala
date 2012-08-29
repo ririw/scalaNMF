@@ -1,7 +1,5 @@
 package org.richardweiss.nmf
 
-import metascala.Nats.Nat
-
 trait Matrix[Rows <: Nat, Cols <: Nat] {
   type Transpose = Matrix[Cols, Rows]
   type Multiply[_ <: Matrix[Cols, A], A <: Nat] = Matrix[Rows, A]

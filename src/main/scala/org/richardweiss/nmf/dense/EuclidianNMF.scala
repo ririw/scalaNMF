@@ -2,7 +2,6 @@ package org.richardweiss.nmf.dense
 
 import no.uib.cipr.matrix.{MatrixEntry, DenseMatrix, AbstractMatrix}
 import no.uib.cipr.matrix.Matrices._
-import metascala.Nats.Nat
 import scala.collection.JavaConversions._
 import util.Random
 import java.io.FileWriter
@@ -29,7 +28,6 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
   type N <: Nat
   type M <: Nat
   type R <: Nat
-  val x = linalg.CSCMatrix.zeros(3,3).activeIterator
   def distance(a: AbstractMatrix, b: AbstractMatrix): Double = {
     var eDistance: Double = 0
     for (e <- v)
