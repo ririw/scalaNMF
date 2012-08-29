@@ -35,5 +35,9 @@ Issues
  * Not fully tested
  * Only useful for smaller matrices
 
-Dependencies
-============
+Dependencies/acknowledgements
+=============================
+ * Scalacheck
+ * Scalatest
+ * Google matrix toolkits
+ * Breeze-math
