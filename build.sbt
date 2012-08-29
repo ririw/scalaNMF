@@ -2,8 +2,6 @@ import AssemblyKeys._ // put this at the top of the file
 
 scalaVersion := "2.9.2"
 
-scalacOptions ++= Seq("-Ydependent-method-types", "-deprecation")
-
 name := "nmf"
 
 organization := "org.richardweiss"
@@ -31,12 +29,8 @@ excludedJars in assembly <<= (fullClasspath in assembly) map { cp =>
 
 libraryDependencies ++= {
   Seq(
-    "joda-time" % "joda-time" % "2.1" % "compile",
-    "org.joda" % "joda-convert" % "1.2"  % "compile",
     "org.scalatest" %% "scalatest" % "1.8" % "test",
     "org.scalacheck" %% "scalacheck" % "1.9" % "test",
-    "org.scalaz" %% "scalaz-core" % "6.0.4",
-    "org.yaml" % "snakeyaml" % "1.10",
     "com.googlecode.matrix-toolkits-java" % "mtj" % "0.9.14",
     "org.scalanlp" %% "breeze-math" % "0.1-SNAPSHOT"
   )

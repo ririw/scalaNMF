@@ -2,7 +2,6 @@ package org.richardweiss.nmf.dense
 
 import no.uib.cipr.matrix.{MatrixEntry, DenseMatrix, AbstractMatrix}
 import no.uib.cipr.matrix.Matrices._
-import breeze.linalg
 import metascala.Nats.Nat
 import scala.collection.JavaConversions._
 import util.Random
@@ -20,10 +19,10 @@ import org.richardweiss.nmf._
  * @param minDistance - The minimum distance required
  * @param maxIterations - The maximum iterations allowed.
  */
-class EuclidianNMF(val v: linalg.Matrix[Double], val r: Int, val minDistance: Double, val maxIterations: Int) extends NMF {
+class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, val maxIterations: Int) extends NMF {
   private val rand = new Random()
-  val n = v.rows
-  val m = v.cols
+  val n = v.numRows()
+  val m = v.numColumns()
 
   // The following are used in some proofs to check dimensions of the
   // results.
@@ -31,22 +30,22 @@ class EuclidianNMF(val v: linalg.Matrix[Double], val r: Int, val minDistance: Do
   type M <: Nat
   type R <: Nat
   val x = linalg.CSCMatrix.zeros(3,3).activeIterator
-  def distance(a: linalg.Matrix[Double], b: linalg.Matrix[Double]): Double = {
+  def distance(a: AbstractMatrix, b: AbstractMatrix): Double = {
     var eDistance: Double = 0
-    for (e <- v.activeValuesIterator)
-      eDistance += math.pow(e, 2)
+    for (e <- v)
+      eDistance += math.pow(a.get(e.row(), e.column()) - b.get(e.row(), e.column()), 2)
     eDistance
   }
 
-  private def validMatrixTest(matrix: linalg.Matrix[Double]) {
-    for (e <- matrix.activeIterator) {
-      if (e._2.isNaN) {
-        println("NAN found at %s".format(e._1.toString()))
-      } else if (e._2.isInfinite) {
-        println("Inifnity found at %s".format(e._1.toString()))
+  private def validMatrixTest(matrix: AbstractMatrix) {
+    for (e <- matrix) {
+      if (e.get().isNaN) {
+        println("NAN found at %s".format((e.row(), e.column()).toString()))
+      } else if (e.get().isInfinite) {
+        println("Inifnity found at %s".format((e.row(), e.column()).toString()))
       }
-      assert(!e._2.isNaN)
-      assert(!e._2.isInfinite)
+      assert(!e.get().isNaN)
+      assert(!e.get().isInfinite)
     }
     for (r <- new VectorRowIterator(matrix)) assert(r.forall(_ != 0))
     for (c <- new VectorColIterator(matrix)) assert(c.forall(_ != 0))
@@ -67,7 +66,7 @@ class EuclidianNMF(val v: linalg.Matrix[Double], val r: Int, val minDistance: Do
     random(tmpW)
     random(tmpH)
 
-    val newMatrix: DenseMatrix = new DenseMatrix(v.numRows(), v.numColumns()).zero().asInstanceOf[DenseMatrix]
+    val newMatrix: DenseMatrix = new DenseMatrix(n, m).zero().asInstanceOf[DenseMatrix]
     val vP = Matrix.matrix[N, M]
     val hP = Matrix.matrix[R, M]
     val wP = Matrix.matrix[N, R]
