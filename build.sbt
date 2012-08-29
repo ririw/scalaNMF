@@ -8,17 +8,16 @@ name := "nmf"
 
 organization := "org.richardweiss"
 
-version := "1.0"
+version := "1.1"
 
 assemblySettings
 
 mergeStrategy in assembly <<= (mergeStrategy in assembly) { (old) =>
   {
-    //case "javax/servlet/SingleThreadModel.class" => MergeStrategy.concat
-    //case "javax/servlet/RequestDispatcher.class" => MergeStrategy.concat
-    //case "org/apache/jasper/compiler/Node$ChildInfo.class" => MergeStrategy.concat
+    case PathList("javax", "servlet", xs @ _*) => MergeStrategy.first
+    case PathList("org", "apache", "jasper", xs @ _*) => MergeStrategy.first
+    case PathList("org", "apache", "beanutils", xs @ _*) => MergeStrategy.first
     case x => old(x)
-    //  old(x)
   }
 }
 
@@ -39,9 +38,13 @@ libraryDependencies ++= {
     "org.scalaz" %% "scalaz-core" % "6.0.4",
     "org.yaml" % "snakeyaml" % "1.10",
     "com.googlecode.matrix-toolkits-java" % "mtj" % "0.9.14",
-    "org.spark-project" %% "spark-core" % "0.5.1-SNAPSHOT"
+    "org.scalanlp" %% "breeze-math" % "0.1-SNAPSHOT"
   )
 }
 
-resolvers ++= Seq("Cloudera Maven Repository" at "https://repository.cloudera.com/content/repositories/releases/",
-              "Packaged Avro" at "http://nicta.github.com/scoobi/releases/")
+
+resolvers ++= Seq(
+            "ScalaNLP Maven2" at "http://repo.scalanlp.org/repo"
+)
+
+

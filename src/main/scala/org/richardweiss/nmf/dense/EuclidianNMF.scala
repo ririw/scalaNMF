@@ -1,57 +1,61 @@
 package org.richardweiss.nmf.dense
 
 import no.uib.cipr.matrix.{MatrixEntry, DenseMatrix, AbstractMatrix}
+import no.uib.cipr.matrix.Matrices._
+import breeze.linalg
 import metascala.Nats.Nat
 import scala.collection.JavaConversions._
 import util.Random
 import java.io.FileWriter
-import org.richardweiss.nmf.{Matrix, NMF_ExitReason, NMF}
+import org.richardweiss.nmf._
 
 /**
  * Find the Non-negative factorization based on euclidian distance. This uses
  * the multaplicative update method.
  *
  * <b>Note that if v is a sparse matrix, only those entries which are in it are considered in the distance function</b>
- * In order to achieve this, if any value in w or h becomes NaN, it is reset to zero.
+ * In order to achieve this, if any value in w or h becomes NaN, it is reset to zero
  * @param v - the matrix being factored
  * @param r - the extra dimension for w and h
  * @param minDistance - The minimum distance required
  * @param maxIterations - The maximum iterations allowed.
  */
-class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, val maxIterations: Int) extends NMF {
+class EuclidianNMF(val v: linalg.Matrix[Double], val r: Int, val minDistance: Double, val maxIterations: Int) extends NMF {
   private val rand = new Random()
-  val n = v.numRows()
-  val m = v.numColumns()
+  val n = v.rows
+  val m = v.cols
 
   // The following are used in some proofs to check dimensions of the
   // results.
   type N <: Nat
   type M <: Nat
   type R <: Nat
-
-  def distance(a: AbstractMatrix, b: AbstractMatrix): Double = {
+  val x = linalg.CSCMatrix.zeros(3,3).activeIterator
+  def distance(a: linalg.Matrix[Double], b: linalg.Matrix[Double]): Double = {
     var eDistance: Double = 0
-    for (e <- v){
-      val r = e.row()
-      val c = e.column()
-      eDistance += math.pow(a.get(r,c) - b.get(r, c), 2)
-    }
+    for (e <- v.activeValuesIterator)
+      eDistance += math.pow(e, 2)
     eDistance
   }
 
-  private def validMatrixTest(matrix: AbstractMatrix) {
-    for (e: MatrixEntry <- matrix) {
-      if (e.get().isNaN) {
-        println("NAN found at %s".format((e.row(), e.column()).toString()))
-      } else if (e.get().isInfinite) {
-        println("Inifnity found at %s".format((e.row(), e.column()).toString()))
+  private def validMatrixTest(matrix: linalg.Matrix[Double]) {
+    for (e <- matrix.activeIterator) {
+      if (e._2.isNaN) {
+        println("NAN found at %s".format(e._1.toString()))
+      } else if (e._2.isInfinite) {
+        println("Inifnity found at %s".format(e._1.toString()))
       }
-      assert(!e.get().isNaN)
-      assert(!e.get().isInfinite)
-
+      assert(!e._2.isNaN)
+      assert(!e._2.isInfinite)
     }
+    for (r <- new VectorRowIterator(matrix)) assert(r.forall(_ != 0))
+    for (c <- new VectorColIterator(matrix)) assert(c.forall(_ != 0))
   }
-
+  private def validVTest(matrix: AbstractMatrix){
+    for (r <- new VectorRowIterator(matrix)) assert(r.forall(_ != 0))
+    for (c <- new VectorColIterator(matrix)) assert(c.forall(_ != 0))
+  }
+  private val TESTS = false
   private def run(): (
     DenseMatrix,
       DenseMatrix,
@@ -60,12 +64,9 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
   = {
     val tmpW = new DenseMatrix(n, r)
     val tmpH = new DenseMatrix(r, m)
-    for (e <- tmpW) {
-      e.set(rand.nextDouble())
-    }
-    for (e <- tmpH) {
-      e.set(rand.nextDouble())
-    }
+    random(tmpW)
+    random(tmpH)
+
     val newMatrix: DenseMatrix = new DenseMatrix(v.numRows(), v.numColumns()).zero().asInstanceOf[DenseMatrix]
     val vP = Matrix.matrix[N, M]
     val hP = Matrix.matrix[R, M]
@@ -84,48 +85,61 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     val wNomP = Matrix.matrix[N, R]
     val wDenomMat = new DenseMatrix(n, r)
     val wDenomP = Matrix.matrix[N, R]
-    val wDenomWHMat = new DenseMatrix(n, m)
-    val wDenomWHP = Matrix.matrix[N, M]
+    val wDenomWWTMat = new DenseMatrix(r, r)
+    val wDenomWWTP = Matrix.matrix[R,R]
 
     var previousDistance = 0.0
     tmpW.mult(tmpH, newMatrix)
+    if (TESTS) validMatrixTest(v)
+    if (TESTS) validVTest(v)
+    if (TESTS) validMatrixTest(tmpH)
+    if (TESTS) validMatrixTest(tmpW)
 
     do {
       previousDistance = delta
 
       tmpW.transAmult(v, hNomMat)
-      wP.transpose.multiplyAndPack(vP, hNomP)
+      if (TESTS) wP.transpose.multiplyAndPack(vP, hNomP)
+      if (TESTS) validMatrixTest(hNomMat)
+      if (TESTS) for (e <- hNomMat) assert(e.get() != 0)
 
       tmpW.transAmult(tmpW, hDenomWTW)
-      wP.transpose.multiplyAndPack(wP, hDenomWTWP)
+      if (TESTS) wP.transpose.multiplyAndPack(wP, hDenomWTWP)
+      if (TESTS) validMatrixTest(hDenomWTW)
 
       hDenomWTW.mult(tmpH, hDenomMat)
-      hDenomWTWP.multiplyAndPack(hP, hDenomP)
+      if (TESTS) hDenomWTWP.multiplyAndPack(hP, hDenomP)
+      if (TESTS) validMatrixTest(hDenomMat)
 
       for (i <- 0 until r)
         for (j <- 0 until m) {
           tmpH.set(i, j, tmpH.get(i, j) * hNomMat.get(i, j) / hDenomMat.get(i, j))
         }
-      for (e <- tmpH){
-        if (e.get().isNaN) e.set(0)
-      }
+      for (e <- tmpH) if (e.get().isNaN) e.set(0)
+
+      if (TESTS) for (e <- tmpH) if (e.get().isNaN) e.set(0)
+      if (TESTS) for (e <- tmpH) assert(e.get() != 0)
+      if (TESTS) validMatrixTest(tmpH)
 
       v.transBmult(tmpH, wNomMat)
-      vP.multiplyAndPack(hP.transpose, wNomP)
+      if (TESTS) vP.multiplyAndPack(hP.transpose, wNomP)
+      if (TESTS) validMatrixTest(wNomMat)
 
-      tmpW.mult(tmpH, wDenomWHMat)
-      wP.multiplyAndPack(hP, wDenomWHP)
+      tmpH.transBmult(tmpH, wDenomWWTMat)
+      if (TESTS) hP.multiplyAndPack(hP.transpose, wDenomWWTP)
+      if (TESTS) validMatrixTest(wDenomWWTMat)
 
-      wDenomWHMat.transBmult(tmpH, wDenomMat)
-      wDenomWHP.multiplyAndPack(hP.transpose, wDenomP)
+      tmpW.mult(wDenomWWTMat, wDenomMat)
+      if (TESTS) wP.multiplyAndPack(wDenomWWTP, wDenomP)
+      if (TESTS) validMatrixTest(wDenomMat)
 
       for (i <- 0 until n)
         for (j <- 0 until r) {
           tmpW.set(i, j, tmpW.get(i, j) * wNomMat.get(i, j) / wDenomMat.get(i, j))
         }
-      for (e <- tmpW){
-        if (e.get().isNaN) e.set(0)
-      }
+      for (e <- tmpW) if (e.get().isNaN) e.set(0)
+
+      if (TESTS) validMatrixTest(tmpW)
 
       tmpW.mult(tmpH, newMatrix)
       delta = distance(v, newMatrix)

@@ -5,21 +5,22 @@ import org.scalatest.PropSpec
 import org.scalatest.prop.PropertyChecks
 import org.scalatest.matchers.ShouldMatchers
 import no.uib.cipr.matrix.DenseMatrix
-import util.Random
+import scala.util.Random
 import collection.JavaConversions._
 import java.io.{FileWriter, File}
 import no.uib.cipr.matrix.sparse.FlexCompRowMatrix
+import scala.util.Random
 
 class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
-  val s = 10
-  val r = 3
+  val s = 1000
+  val r = 5
 
   property("NNMF test"){
     val random = new Random()
     val v = new DenseMatrix(s,s)
     for (i <- 0 until s)
       for (j <- 0 until s){
-        val vij = math.pow(random.nextDouble()*10, 3)
+        val vij = if (random.nextInt() % s/5 != 0) math.pow(random.nextDouble()*10, 3) else 0
         v.set(i, j, vij)
       }
     /*
@@ -39,6 +40,8 @@ class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
     val eNMF = new EuclidianNMF(v, r, 20, 1000)
     val endTime = java.util.Calendar.getInstance().getTimeInMillis
     println("Dense factorization took %d ms".format(endTime-startTime))
+    println(eNMF.finalDistance)
+    println(eNMF.finalExitReason)
     vFile.write(v.toString.dropWhile(c => c != '\n'))
     wFile.write(eNMF.w.toString.dropWhile(c => c != '\n'))
     hFile.write(eNMF.h.toString.dropWhile(c => c != '\n'))
@@ -46,23 +49,22 @@ class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
     wFile.close()
     hFile.close()
   }
-  property("See what happens with parallel"){
+  property("See what happens with sparsity"){
+    pending
     val random = new Random()
     val v = new FlexCompRowMatrix(s,s)
     for (i <- 0 until s)
       for (j <- 0 until s){
-        if (random.nextInt() % (s/2) == 0){
+        if (random.nextInt() % (s/5) == 0){
           val vij = math.pow(random.nextDouble()*10, 3)
           v.set(i, j, vij)
         }
       }
 
     val startTime = java.util.Calendar.getInstance().getTimeInMillis
-    val eNMF = new MultiEuclidianNMF(v, r, 20, 1000, 8)
+    val eNMF = new EuclidianNMF(v, r, 20, 1000)
     val endTime = java.util.Calendar.getInstance().getTimeInMillis
-    println("Parallel factorization took %d ms".format(endTime-startTime))
+    println("Sparse factorization took %d ms".format(endTime-startTime))
     println(eNMF.finalDistance)
-    println(eNMF.worstDistance)
-
   }
 }
