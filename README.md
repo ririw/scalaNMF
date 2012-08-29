@@ -8,11 +8,11 @@ Use
 Set up the matrix you wish to factorize to be an instance of <i>AbstractMatrix</i>. Then create a new instance of
 EuclidianNMF, with <i>r</i> as the inner dimension for <i>W</i> and <i>H</i>.
 
-> v = new SparseMatrix(...)
-> // set up v
-> val factored = newe EuclidianNMF(v, r, minimumDistance, maxIterations)
-> val wmat = factored.w
-> val hmat = factored.h
+    v = new SparseMatrix(...)
+    // set up v
+    val factored = newe EuclidianNMF(v, r, minimumDistance, maxIterations)
+    val wmat = factored.w
+    val hmat = factored.h
 
 This may take some time.
 
