@@ -3,10 +3,10 @@ package org.richardweiss.nmf
 import no.uib.cipr.matrix.AbstractMatrix
 
 trait NMF {
-  val w: AbstractMatrix
-  val h: AbstractMatrix
-  val finalExitReason: NMF_ExitReason.EuclidianNMF_ExitReason
-  val finalDistance: Double
+  var w: AbstractMatrix
+  var h: AbstractMatrix
+  var finalExitReason: NMF_ExitReason.EuclidianNMF_ExitReason
+  var finalDistance: Double
 }
 
 object NMF_ExitReason extends Enumeration {

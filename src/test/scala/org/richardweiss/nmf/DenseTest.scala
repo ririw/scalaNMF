@@ -12,7 +12,7 @@ import no.uib.cipr.matrix.sparse.FlexCompRowMatrix
 import scala.util.Random
 
 class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
-  val s = 1000
+  val s = 100
   val r = 5
 
   property("NNMF test"){
@@ -37,7 +37,7 @@ class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
     val wFile = new FileWriter("./w.dat")
     val hFile = new FileWriter("./h.dat")
     val startTime = java.util.Calendar.getInstance().getTimeInMillis
-    val eNMF = new EuclidianNMF(v, r, 20, 1000)
+    val eNMF = EuclidianNMF(v, r, 20, 1000)
     val endTime = java.util.Calendar.getInstance().getTimeInMillis
     println("Dense factorization took %d ms".format(endTime-startTime))
     println(eNMF.finalDistance)
@@ -62,7 +62,7 @@ class DenseTest extends PropSpec with PropertyChecks with ShouldMatchers {
       }
 
     val startTime = java.util.Calendar.getInstance().getTimeInMillis
-    val eNMF = new EuclidianNMF(v, r, 20, 1000)
+    val eNMF = EuclidianNMF(v, r, 20, 1000)
     val endTime = java.util.Calendar.getInstance().getTimeInMillis
     println("Sparse factorization took %d ms".format(endTime-startTime))
     println(eNMF.finalDistance)

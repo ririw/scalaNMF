@@ -6,6 +6,8 @@ import scala.collection.JavaConversions._
 import util.Random
 import java.io.FileWriter
 import org.richardweiss.nmf._
+import no.uib.cipr.matrix.sparse.{FlexCompColMatrix, FlexCompRowMatrix}
+import collection.mutable
 
 /**
  * Find the Non-negative factorization based on euclidian distance. This uses
@@ -18,11 +20,12 @@ import org.richardweiss.nmf._
  * @param minDistance - The minimum distance required
  * @param maxIterations - The maximum iterations allowed.
  */
-class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, val maxIterations: Int) extends NMF {
+class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, val maxIterations: Int)
+  extends NMF with mutable.Publisher[Int] {
   private val rand = new Random()
   val n = v.numRows()
   val m = v.numColumns()
-
+  type Pub = EuclidianNMF
   // The following are used in some proofs to check dimensions of the
   // results.
   type N <: Nat
@@ -32,6 +35,12 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     var eDistance: Double = 0
     for (e <- v)
       eDistance += math.pow(a.get(e.row(), e.column()) - b.get(e.row(), e.column()), 2)
+    eDistance
+  }
+  def distanceWH(w: FlexCompRowMatrix, h: FlexCompColMatrix): Double = {
+    var eDistance: Double = 0
+    for (e <- v)
+      eDistance += math.pow(e.get - w.getRow(e.row()).dot(h.getColumn(e.column())), 2)
     eDistance
   }
 
@@ -53,18 +62,17 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     for (c <- new VectorColIterator(matrix)) assert(c.forall(_ != 0))
   }
   private val TESTS = false
-  private def run(): (
-    DenseMatrix,
-      DenseMatrix,
+  private def compute(): (
+      AbstractMatrix,
+      AbstractMatrix,
       NMF_ExitReason.EuclidianNMF_ExitReason,
       Double)
   = {
-    val tmpW = new DenseMatrix(n, r)
-    val tmpH = new DenseMatrix(r, m)
+    val tmpW = new FlexCompRowMatrix(n, r)
+    val tmpH = new FlexCompColMatrix(r, m)
     random(tmpW)
     random(tmpH)
 
-    val newMatrix: DenseMatrix = new DenseMatrix(n, m).zero().asInstanceOf[DenseMatrix]
     val vP = Matrix.matrix[N, M]
     val hP = Matrix.matrix[R, M]
     val wP = Matrix.matrix[N, R]
@@ -86,7 +94,6 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     val wDenomWWTP = Matrix.matrix[R,R]
 
     var previousDistance = 0.0
-    tmpW.mult(tmpH, newMatrix)
     if (TESTS) validMatrixTest(v)
     if (TESTS) validVTest(v)
     if (TESTS) validMatrixTest(tmpH)
@@ -94,7 +101,7 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
 
     do {
       previousDistance = delta
-
+      publish(iterations)
       tmpW.transAmult(v, hNomMat)
       if (TESTS) wP.transpose.multiplyAndPack(vP, hNomP)
       if (TESTS) validMatrixTest(hNomMat)
@@ -138,8 +145,7 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
 
       if (TESTS) validMatrixTest(tmpW)
 
-      tmpW.mult(tmpH, newMatrix)
-      delta = distance(v, newMatrix)
+      delta = distanceWH(tmpW, tmpH)
       iterations += 1
       //println(delta)
     } while (iterations < maxIterations && delta > minDistance && previousDistance != delta)
@@ -154,11 +160,17 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     (tmpW, tmpH, exitReason, finalDistance)
   }
 
-  private val results = run()
-  val w = results._1
-  val h = results._2
-  val finalExitReason = results._3
-  val finalDistance = results._4
+  var w: AbstractMatrix = null
+  var h: AbstractMatrix = null
+  var finalExitReason: NMF_ExitReason.EuclidianNMF_ExitReason = null
+  var finalDistance: Double = Double.NaN
+  def run() {
+    val results = compute()
+    w = results._1
+    h = results._2
+    finalExitReason = results._3
+    finalDistance = results._4
+  }
 }
 
 /**
@@ -188,18 +200,33 @@ class MultiEuclidianNMF(
 
   private val allResults = if (parallel) {
     (0 until numInstances).par.map {
-      _ => new EuclidianNMF(v, r, minDistance, maxIterations)
+      _ => EuclidianNMF(v, r, minDistance, maxIterations)
     }
   } else {
     (0 until numInstances).map {
-      _ => new EuclidianNMF(v, r, minDistance, maxIterations)
+      _ => EuclidianNMF(v, r, minDistance, maxIterations)
     }
   }
+  allResults.map(_.run())
   private val result: EuclidianNMF = allResults.minBy(x => x.finalDistance)
-  val w = result.w
-  val h = result.h
-  val finalExitReason = result.finalExitReason
-  val finalDistance = result.finalDistance
-  val worstDistance = allResults.maxBy(x => x.finalDistance).finalDistance
+  var w = result.w
+  var h = result.h
+  var finalExitReason = result.finalExitReason
+  var finalDistance = result.finalDistance
+  var worstDistance = allResults.maxBy(x => x.finalDistance).finalDistance
 }
 
+
+object EuclidianNMF {
+  def apply(v: AbstractMatrix, r: Int, minDistance: Double, maxIterations: Int) = {
+    val nmf = new EuclidianNMF(v,r,minDistance, maxIterations)
+    nmf.run()
+    nmf
+  }
+  def apply(v: AbstractMatrix, r: Int, minDistance: Double, maxIterations: Int, subscribers: mutable.Subscriber[Int, EuclidianNMF]*) = {
+    val nmf = new EuclidianNMF(v,r,minDistance, maxIterations)
+    for (s <- subscribers) nmf.subscribe(s)
+    nmf.run()
+    nmf
+  }
+}
