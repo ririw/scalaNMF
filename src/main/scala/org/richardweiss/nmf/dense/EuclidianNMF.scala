@@ -63,8 +63,8 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
   }
   private val TESTS = false
   private def compute(): (
-      AbstractMatrix,
-      AbstractMatrix,
+      FlexCompRowMatrix,
+      FlexCompColMatrix,
       NMF_ExitReason.EuclidianNMF_ExitReason,
       Double)
   = {
@@ -160,8 +160,8 @@ class EuclidianNMF(val v: AbstractMatrix, val r: Int, val minDistance: Double, v
     (tmpW, tmpH, exitReason, finalDistance)
   }
 
-  var w: AbstractMatrix = null
-  var h: AbstractMatrix = null
+  var w: FlexCompRowMatrix = null
+  var h: FlexCompColMatrix = null
   var finalExitReason: NMF_ExitReason.EuclidianNMF_ExitReason = null
   var finalDistance: Double = Double.NaN
   def run() {

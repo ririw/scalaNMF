@@ -1,10 +1,10 @@
 package org.richardweiss.nmf
 
-import no.uib.cipr.matrix.AbstractMatrix
+import no.uib.cipr.matrix.sparse.{FlexCompColMatrix, FlexCompRowMatrix}
 
 trait NMF {
-  var w: AbstractMatrix
-  var h: AbstractMatrix
+  var w: FlexCompRowMatrix
+  var h: FlexCompColMatrix
   var finalExitReason: NMF_ExitReason.EuclidianNMF_ExitReason
   var finalDistance: Double
 }

@@ -32,7 +32,8 @@ libraryDependencies ++= {
     "org.scalatest" %% "scalatest" % "1.8" % "test",
     "org.scalacheck" %% "scalacheck" % "1.9" % "test",
     "com.googlecode.matrix-toolkits-java" % "mtj" % "0.9.14",
-    "org.scalanlp" %% "breeze-math" % "0.1-SNAPSHOT"
+    "org.scalanlp" %% "breeze-math" % "0.1-SNAPSHOT",
+    "org.spark-project" %% "spark-core" % "0.5.1-SNAPSHOT"
   )
 }
 
