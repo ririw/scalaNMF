@@ -19,7 +19,7 @@ This may take some time.
 The MultiEuclidianNMF class executes several of the same problems, possibly in parallel, with different random initializations,
 which can sometimes be useful for situations where the eventual factorization is heavily dependent on initial values.
 
-There is also a distributed implementation, which unfortunatley uses a naive method to performe the matrix multiplications and 
+There is also a distributed implementation, which unfortunately uses a naive method to perform the matrix multiplications and 
 updates. It requires a spark setup.
 
 Todo
